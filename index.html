@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#EEF1F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10161C" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="답지함">
+<title>답지함</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316212B'/%3E%3Cellipse cx='32' cy='33' rx='19' ry='15' fill='none' stroke='%23FF5E71' stroke-width='4.5' transform='rotate(-8 32 33)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+*{box-sizing:border-box}
+:root{
+  --paper:#EEF1F4; --surface:#FFFFFF; --ink:#16212B; --muted:#5B6875; --line:#D9DFE5;
+  --red:#CF2338; --red-ink:#A91B2E; --red-soft:#FCE6E9; --ok:#1F7A45; --desk:#DCE1E6; --focus:#2A64D6;
+  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  color-scheme:light; -webkit-text-size-adjust:100%;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#10161C; --surface:#18212A; --ink:#E5EAEF; --muted:#9AA6B2; --line:#2B3641;
+    --red:#FF5E71; --red-ink:#FF8796; --red-soft:#3B1F26; --ok:#5BCB8A; --desk:#0A0E12; --focus:#7FA8FF;
+    color-scheme:dark;
+  }
+}
+[hidden]{display:none !important}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--paper);z-index:10}
+body.noscroll{overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:default;opacity:.55}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* 공통 입력 */
+label.field{display:block;font-size:14px;font-weight:500;color:var(--muted);margin-bottom:14px}
+.field input,.field select,.vsearch input{display:block;width:100%;margin-top:6px;font:inherit;font-size:16px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+.btn{border:1px solid transparent;border-radius:8px;padding:11px 16px;font-weight:600;background:var(--ink);color:var(--surface)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.small{padding:7px 12px;font-size:14px}
+.btn.danger{background:transparent;color:var(--red);border-color:var(--line)}
+.btn.block{width:100%}
+
+/* 로그인 */
+.login-wrap{max-width:380px;margin:0 auto;padding:calc(13vh + env(safe-area-inset-top,0px)) 24px 40px}
+.login-academy{margin:0 0 4px;color:var(--muted);font-size:14px}
+.login-title{margin:0;font-size:46px;line-height:1.1;font-weight:700;letter-spacing:-.03em}
+.login-sub{margin:10px 0 30px;color:var(--muted)}
+.form-error{min-height:1.5em;margin:-4px 0 12px;color:var(--red);font-size:14px}
+
+/* 메인 */
+.wrap{max-width:720px;margin:0 auto}
+.brandbar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:calc(16px + env(safe-area-inset-top,0px)) 16px 6px}
+.brand-name{display:block;font-size:24px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.brand-academy{display:block;font-size:12px;color:var(--muted)}
+.brand-actions{display:flex;gap:6px;flex:none}
+.searchbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);padding:8px 16px 10px}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:0 6px 0 12px}
+.search-box:focus-within{border-color:var(--ink)}
+.search-box > svg{flex:none;color:var(--muted)}
+.search-box input{flex:1;min-width:0;border:0;margin:0;padding:13px 0;background:transparent;font:inherit;font-size:16px;color:var(--ink)}
+.search-box input:focus-visible{outline:none}
+.search-box input::-webkit-search-cancel-button{display:none}
+.pill{flex:none;font-size:13px;font-weight:600;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:5px 11px}
+.pill[aria-pressed="true"],.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.filters{display:flex;gap:6px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chip{flex:none;font-size:14px;font-weight:500;padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:transparent}
+
+.list{padding:0 0 calc(48px + env(safe-area-inset-bottom,0px))}
+.group{margin:20px 16px 6px;font-size:13px;font-weight:600;color:var(--muted)}
+.rows,.hit-pages{list-style:none;margin:0;padding:0;background:var(--surface);border-block:1px solid var(--line)}
+@media (min-width:640px){.rows,.hit-pages{margin:0 16px;border:1px solid var(--line);border-radius:10px;overflow:hidden}}
+.row{display:flex;align-items:center;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row-main{flex:1;min-width:0;text-align:left;background:none;border:0;padding:13px 8px 13px 16px}
+.row-main:active,.hit:active{background:var(--paper)}
+.row-title{display:block;font-weight:600;line-height:1.35}
+.row-tags{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:3px;font-size:13px;color:var(--muted)}
+.row-tags .scan{color:var(--red-ink)}
+.row-edit{flex:none;font-size:13px;color:var(--muted);background:none;border:0;padding:10px 6px}
+.star{flex:none;background:none;border:0;padding:12px 14px 12px 8px;line-height:0}
+.star svg{fill:none;stroke:var(--muted)}
+.star[aria-pressed="true"] svg{fill:var(--red);stroke:var(--red)}
+.empty{padding:56px 24px;text-align:center;color:var(--muted);margin:0}
+.empty .btn{margin-top:14px}
+
+/* 본문 검색 결과 */
+.hits-note{margin:14px 16px 0;font-size:13px;color:var(--muted)}
+.hit-book{margin-top:16px}
+.hit-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 8px;margin:0 16px 6px;font-size:15px}
+.hit-title button{font-weight:700;background:none;border:0;padding:0;text-align:left}
+.hit-title span{font-size:13px;font-weight:400;color:var(--muted)}
+.hit{display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:12px 16px}
+.hit-pages li:first-child .hit,.vresults .hit:first-child{border-top:0}
+.snip{font-size:14px;line-height:1.55;color:var(--muted);overflow-wrap:anywhere}
+mark{background:var(--red-soft);color:var(--red-ink);padding:0 2px;border-radius:3px}
+
+/* 빨간 펜 동그라미 (쪽 번호) */
+.circled{position:relative;flex:none;display:inline-grid;place-items:center;min-width:44px;height:34px;padding:0 7px;color:var(--red);font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;border:2px solid var(--red);border-radius:58% 42% 52% 48%/46% 56% 44% 54%;transform:rotate(-5deg)}
+.circled::after{content:"";position:absolute;inset:-4px -2px -2px -3px;border:1px solid var(--red);opacity:.5;border-radius:44% 56% 47% 53%/58% 42% 58% 42%;transform:rotate(9deg)}
+.hit-pages li:nth-child(3n+2) .circled,.vresults .hit:nth-child(3n+2) .circled{transform:rotate(3deg);border-radius:46% 54% 44% 56%/55% 45% 55% 45%}
+.hit-pages li:nth-child(3n) .circled,.vresults .hit:nth-child(3n) .circled{transform:rotate(-2deg);border-radius:52% 48% 60% 40%/42% 58% 42% 58%}
+
+/* 답지 보기 */
+.viewer{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;background:var(--desk)}
+.vbar{display:flex;align-items:center;gap:4px;padding:calc(6px + env(safe-area-inset-top,0px)) 6px 6px;background:var(--surface);border-bottom:1px solid var(--line)}
+.icon-btn{flex:none;width:44px;height:44px;display:grid;place-items:center;background:none;border:0;border-radius:8px}
+.icon-btn[aria-pressed="true"]{background:var(--paper)}
+.vtitle{flex:1;min-width:0}
+.vtitle strong,.vtitle span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vtitle strong{font-size:15px}
+.vtitle span{font-size:12px;color:var(--muted)}
+.vsearch{display:flex;flex-direction:column;max-height:62vh;background:var(--surface);border-bottom:1px solid var(--line);padding:10px 12px 0}
+.vsearch input{margin:0}
+.vresults{overflow:auto;margin:6px -12px 0}
+.vr-note{margin:10px 16px 14px;font-size:14px;color:var(--muted)}
+.vscroll{position:relative;flex:1;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.vpages{position:relative;margin:0 auto;padding:12px 10px 28px;display:flex;flex-direction:column;gap:12px}
+.vpage{position:relative;width:100%;aspect-ratio:1/1.414;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.12)}
+.vpage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vpage-no{position:absolute;inset:0;display:grid;place-items:center;color:#AEB7C0;font-size:14px}
+.vstatus{margin:0;padding:48px 24px;text-align:center;color:var(--muted)}
+.vstatus:empty{display:none}
+.vfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line)}
+.zoom{display:flex;align-items:center;gap:4px}
+.zoom button{width:44px;height:40px;font-size:20px;line-height:1;background:none;border:1px solid var(--line);border-radius:8px}
+.zoom span{min-width:52px;text-align:center;font-size:14px;font-variant-numeric:tabular-nums}
+.pagejump{display:flex;align-items:center;gap:6px;font-size:15px;font-variant-numeric:tabular-nums}
+.pagejump input{width:68px;font:inherit;font-size:16px;text-align:center;padding:8px 4px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px}
+
+/* 시트(올리기·수정) */
+dialog.sheet{width:min(560px,100%);max-width:100%;max-height:min(90vh,780px);margin:auto auto 0;border:0;border-radius:16px 16px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));background:var(--surface);color:var(--ink)}
+@media (min-width:640px){dialog.sheet{margin:auto;border-radius:16px}}
+dialog::backdrop{background:rgba(8,12,16,.5)}
+dialog h2{margin:0 0 6px;font-size:20px;letter-spacing:-.02em}
+.hint{margin:0 0 16px;color:var(--muted);font-size:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid2 .full{grid-column:1/-1}
+.filepick{display:block;margin-bottom:16px;padding:16px;border:1.5px dashed var(--line);border-radius:10px;text-align:center;font-weight:600}
+.filepick input{display:block;width:100%;margin-top:8px;font-size:14px;font-weight:400;color:var(--muted)}
+.upitems{list-style:none;margin:0;padding:0}
+.upitem{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.upitem input{width:100%;margin:0;font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.upmeta{align-self:center;font-size:13px;color:var(--muted)}
+.upmsg{grid-column:1/-1;font-size:13px;color:var(--muted)}
+.upmsg:empty{display:none}
+.upitem[data-status="done"] .upmsg{color:var(--ok)}
+.upitem[data-status="error"] .upmsg{color:var(--red)}
+.sheet-actions{display:flex;gap:8px;align-items:center;margin-top:18px}
+.spacer{flex:1}
+
+/* 학생 채점용 열기 */
+.vshare{flex:none;margin-right:2px}
+.sharebar{padding:0 16px}
+.share-item{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 10px 10px 14px;background:var(--surface);border:1.5px solid var(--red);border-radius:12px}
+.si-text{flex:1;min-width:0}
+.si-text strong{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si-text span{display:block;font-size:13px;color:var(--muted)}
+.range{display:flex;align-items:flex-end;gap:10px}
+.range .field{flex:1}
+.range-sep{padding-bottom:24px;color:var(--muted)}
+.field-label{margin:0;font-size:14px;font-weight:500;color:var(--muted)}
+.times{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
+.qr-wrap{display:grid;justify-items:center;gap:12px;text-align:center}
+.qr-meta strong{display:block;font-size:18px;letter-spacing:-.02em}
+.qr-meta span{font-size:14px;color:var(--muted)}
+.qr-box{background:#fff;padding:12px;border-radius:12px;border:1px solid var(--line);line-height:0}
+.qr-box svg{display:block;width:min(260px,62vw);height:auto}
+.countdown{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--red);line-height:1.1}
+.linkline{width:100%;margin:0;font-size:13px;color:var(--muted);overflow-wrap:anywhere;background:var(--paper);border-radius:8px;padding:8px 10px;text-align:left;user-select:all;-webkit-user-select:all}
+
+/* 학생 화면 */
+.student{max-width:860px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top,0px)) 0 calc(40px + env(safe-area-inset-bottom,0px))}
+.st-head{padding:0 16px 12px}
+.st-title{margin:0;font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1.25}
+.st-sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+.st-timer{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--paper);border-block:1px solid var(--line);font-size:14px;color:var(--muted)}
+.st-timer b{font-size:20px;color:var(--red);font-variant-numeric:tabular-nums}
+.st-pages{display:flex;flex-direction:column;gap:16px;padding:14px 10px}
+.st-page{margin:0}
+.st-label{display:block;padding:0 4px 6px;font-size:13px;color:var(--muted)}
+.st-page img{display:block;width:100%;height:auto;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.12);-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+/* 학원 태블릿 */
+.st-back{margin-bottom:12px}
+.st-list{display:grid;gap:12px;padding:8px 16px 0}
+@media (min-width:700px){.st-list{grid-template-columns:1fr 1fr}}
+.tb-item{display:grid;gap:6px;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:18px}
+.tb-item:active{border-color:var(--ink)}
+.tb-title{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.3}
+.tb-sub{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:15px;color:var(--muted)}
+.tb-left{font-size:15px;font-weight:600;color:var(--red);font-variant-numeric:tabular-nums}
+.st-list .empty{grid-column:1/-1}
+@media (min-width:700px){.tb-item{padding:22px}.tb-title{font-size:23px}.tb-sub,.tb-left{font-size:16px}.st-back{padding:10px 16px;font-size:15px}}
+.hint.center{text-align:center;margin:0}
+.qr-more{width:100%}
+.qr-more summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);padding:6px 0;text-align:center}
+.qr-inner{display:grid;justify-items:center;gap:10px;margin-top:8px}
+.sheet-sub{margin:22px 0 4px;font-size:16px;letter-spacing:-.01em}
+.tb-admin{list-style:none;margin:0 0 10px;padding:0}
+.tb-admin li{display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--line)}
+.tb-admin li > span{flex:1;min-width:0;font-weight:600}
+.tb-admin .none{color:var(--muted);font-weight:400}
+.tb-add{display:flex;gap:8px}
+.tb-add input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tb-show{display:grid;justify-items:center;gap:10px;margin-top:14px;padding:14px;background:var(--paper);border-radius:12px;text-align:center}
+.tb-show strong{font-size:16px}
+.tb-show .linkline{background:var(--surface)}
+
+.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);opacity:0;pointer-events:none;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:14px;z-index:50;max-width:calc(100% - 32px);transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+
+<p id="fatal" class="empty" hidden>필요한 프로그램을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침하세요.</p>
+
+<!-- 로그인 -->
+<section id="login" hidden>
+  <div class="login-wrap">
+    <p class="login-academy" data-academy></p>
+    <h1 class="login-title">답지함</h1>
+    <p class="login-sub">학원에서 받은 아이디로 로그인하세요.</p>
+    <form id="loginForm" novalidate>
+      <label class="field">아이디<input id="loginId" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <label class="field">비밀번호<input id="loginPw" type="password" autocomplete="current-password"></label>
+      <p class="form-error" id="loginError" role="alert"></p>
+      <button class="btn block" type="submit" id="loginBtn">로그인</button>
+    </form>
+  </div>
+</section>
+
+<!-- 목록 -->
+<section id="main" hidden>
+  <header class="brandbar wrap">
+    <div>
+      <span class="brand-name">답지함</span>
+      <span class="brand-academy" data-academy></span>
+    </div>
+    <div class="brand-actions">
+      <button class="btn small" id="uploadOpen" hidden>답지 올리기</button>
+      <button class="btn ghost small" id="accountBtn" aria-label="내 계정"></button>
+    </div>
+  </header>
+  <div class="searchbar">
+    <div class="wrap">
+      <div class="search-box">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+        <input id="q" type="search" placeholder="교재명, 출판사, 초성으로 찾기" autocomplete="off" enterkeyhint="search" aria-label="답지 찾기">
+        <button class="pill" id="bodyBtn" aria-pressed="false">본문 검색</button>
+      </div>
+      <div class="filters" id="filters"></div>
+    </div>
+  </div>
+  <div id="shareBar" class="sharebar wrap" hidden></div>
+  <main id="list" class="list wrap"></main>
+</section>
+
+<!-- 답지 보기 -->
+<section id="viewer" class="viewer" hidden aria-label="답지 보기">
+  <div class="vbar">
+    <button class="icon-btn" id="vClose" aria-label="닫기"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="vtitle"><strong id="vTitle"></strong><span id="vMeta"></span></div>
+    <button class="btn small vshare" id="vShareBtn">채점 열기</button>
+    <button class="icon-btn" id="vSearchBtn" aria-label="이 답지에서 찾기" aria-pressed="false"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button>
+  </div>
+  <div class="vsearch" id="vSearch" hidden>
+    <input id="vq" type="search" placeholder="p.34, Unit 3, 문장 일부로 찾기" autocomplete="off" enterkeyhint="search" aria-label="이 답지에서 찾기">
+    <div class="vresults" id="vResults"></div>
+  </div>
+  <div class="vscroll" id="vScroll">
+    <div class="vpages" id="vPages"></div>
+    <p class="vstatus" id="vStatus"></p>
+  </div>
+  <div class="vfoot">
+    <div class="zoom">
+      <button id="zOut" aria-label="축소">−</button>
+      <span id="zLabel">100%</span>
+      <button id="zIn" aria-label="확대">+</button>
+    </div>
+    <label class="pagejump"><input id="vPage" type="number" inputmode="numeric" min="1" aria-label="쪽 이동"><span id="vTotal">/ 0</span></label>
+  </div>
+</section>
+
+<!-- 답지 올리기 (원장 전용) -->
+<dialog id="uploadDlg" class="sheet" aria-labelledby="upTitle">
+  <h2 id="upTitle">답지 올리기</h2>
+  <p class="hint">출판사에서 받은 PDF를 여러 개 한꺼번에 골라도 돼요. 출판사·구분·레벨은 이번에 고른 파일 모두에 적용되고, 교재명은 파일마다 고칠 수 있어요.</p>
+  <label class="filepick">PDF 고르기<input type="file" id="upFiles" accept="application/pdf,.pdf" multiple></label>
+  <div class="grid2">
+    <label class="field full">출판사<input id="upPublisher" list="pubList" autocomplete="off"></label>
+    <label class="field">구분<select id="upDivision"></select></label>
+    <label class="field">레벨·학년<input id="upLevel" list="lvlList" placeholder="예: 중2" autocomplete="off"></label>
+  </div>
+  <ul class="upitems" id="upItems"></ul>
+  <div class="sheet-actions">
+    <span class="spacer"></span>
+    <button class="btn ghost" id="upCancel">닫기</button>
+    <button class="btn" id="upStart" disabled>올리기</button>
+  </div>
+</dialog>
+
+<!-- 교재 정보 수정 (원장 전용) -->
+<dialog id="editDlg" class="sheet" aria-labelledby="edHead">
+  <h2 id="edHead">교재 정보 수정</h2>
+  <p class="hint">PDF를 바꾸려면 이 교재를 지우고 새로 올리세요.</p>
+  <div class="grid2">
+    <label class="field full">교재명<input id="edTitle" autocomplete="off"></label>
+    <label class="field full">출판사<input id="edPublisher" list="pubList" autocomplete="off"></label>
+    <label class="field">구분<select id="edDivision"></select></label>
+    <label class="field">레벨·학년<input id="edLevel" list="lvlList" autocomplete="off"></label>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn danger" id="edDelete">지우기</button>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="edCancel">취소</button>
+    <button class="btn" id="edSave">저장</button>
+  </div>
+</dialog>
+
+<!-- 학생 채점용으로 열기 (강사) -->
+<dialog id="shareDlg" class="sheet" aria-labelledby="shHead">
+  <div id="shForm">
+    <h2 id="shHead">학생 채점용으로 열기</h2>
+    <p class="hint">고른 쪽만 학원 태블릿에 바로 떠요. 시간이 지나면 태블릿에서 자동으로 사라져요.</p>
+    <div class="range">
+      <label class="field">PDF 쪽부터<input id="shFrom" type="number" inputmode="numeric" min="1"></label>
+      <span class="range-sep">~</span>
+      <label class="field">까지<input id="shTo" type="number" inputmode="numeric" min="1"></label>
+    </div>
+    <p class="field-label">열어 둘 시간</p>
+    <div class="times" id="shTimes"></div>
+    <p class="form-error" id="shError" role="alert"></p>
+    <div class="sheet-actions">
+      <span class="spacer"></span>
+      <button class="btn ghost" id="shCancel">취소</button>
+      <button class="btn" id="shMake">태블릿에 열기</button>
+    </div>
+  </div>
+  <div id="shResult" hidden>
+    <div class="qr-wrap">
+      <div class="qr-meta"><strong id="shrTitle"></strong><span id="shrRange"></span></div>
+      <div class="countdown" id="shrLeft"></div>
+      <p class="hint center">학원 태블릿의 ‘지금 열린 채점’에 바로 떴어요.</p>
+      <details class="qr-more">
+        <summary>태블릿 말고 폰으로 열기</summary>
+        <div class="qr-inner">
+          <div class="qr-box" id="shrQr"></div>
+          <p class="linkline" id="shrLink"></p>
+          <button class="btn ghost small" id="shrCopy">링크 복사</button>
+        </div>
+      </details>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn danger" id="shrEnd">지금 닫기</button>
+      <span class="spacer"></span>
+      <button class="btn" id="shrDone">확인</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- 학생 채점 화면 (QR로 들어옴) -->
+<section id="student" class="student" hidden>
+  <header class="st-head">
+    <button class="btn ghost small st-back" id="stBack" hidden>목록으로</button>
+    <p class="login-academy" data-academy></p>
+    <h1 class="st-title" id="stTitle">채점 답지</h1>
+    <p class="st-sub" id="stSub"></p>
+  </header>
+  <div class="st-timer" id="stTimer" hidden><span>채점 시간</span><b id="stLeft"></b></div>
+  <div class="st-pages" id="stPages"></div>
+  <div class="st-list" id="stList" hidden></div>
+  <p class="empty" id="stMsg" hidden></p>
+</section>
+
+<!-- 내 계정 (원장은 태블릿 연결도 여기서) -->
+<dialog id="acctDlg" class="sheet" aria-labelledby="acHead">
+  <h2 id="acHead"></h2>
+  <p class="hint" id="acSub"></p>
+  <section id="acTablets" hidden>
+    <h3 class="sheet-sub">채점 태블릿</h3>
+    <p class="hint">연결한 태블릿에는 선생님이 연 채점만 떠요. 태블릿에서 주소를 한 번 열고 홈 화면에 추가해 두세요.</p>
+    <ul class="tb-admin" id="tbList"></ul>
+    <div class="tb-add">
+      <input id="tbName" placeholder="예: 황성 1번" autocomplete="off" aria-label="태블릿 이름">
+      <button class="btn small" id="tbAdd">태블릿 추가</button>
+    </div>
+    <div class="tb-show" id="tbShow" hidden>
+      <strong id="tbShowName"></strong>
+      <div class="qr-box" id="tbQr"></div>
+      <p class="linkline" id="tbLink"></p>
+      <button class="btn ghost small" id="tbCopy">주소 복사</button>
+    </div>
+  </section>
+  <div class="sheet-actions">
+    <button class="btn danger" id="acLogout">로그아웃</button>
+    <span class="spacer"></span>
+    <button class="btn" id="acClose">닫기</button>
+  </div>
+</dialog>
+
+<datalist id="pubList"></datalist>
+<datalist id="lvlList"></datalist>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ===== 여기만 바꾸면 돼요 ===== */
+const CONFIG = {
+  SUPABASE_URL: 'https://nogosavnmjerdtmyrbvn.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_ya1QJIfNOgYw5Xc9X5i5Bw_5YZQPWWG',
+  LOGIN_DOMAIN: 'joyenglishedu.com',   // 아이디 뒤에 붙는 주소 (실제 메일은 가지 않아요)
+  BUCKET: 'answers',
+  DIVISIONS: ['초등관', '중고등관'],
+  ACADEMY: '조이잉글리시 엘리트어학원',
+  MAX_MB: 50,
+  SHARE_BUCKET: 'shares',
+  SHARE_MINUTES: [10, 20, 30, 50],   // 학생 채점용으로 열어 둘 시간 선택지
+  SHARE_MAX_PAGES: 20,
+};
+/* ============================== */
+
+const $ = (s) => document.querySelector(s);
+if (!window.supabase || !window.pdfjsLib) { $('#fatal').hidden = false; return; }
+
+const PDF_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/';
+pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_BASE + 'build/pdf.worker.min.js';
+const PDF_OPTS = { cMapUrl: PDF_BASE + 'cmaps/', cMapPacked: true, standardFontDataUrl: PDF_BASE + 'standard_fonts/' };
+
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+const STAR = '<svg width="22" height="22" viewBox="0 0 24 24" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>';
+const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+const state = { user: null, profile: null, books: [], favs: new Set(), filter: 'all', q: '', body: false, bodyHits: null, shares: [] };
+
+/* ---------- 작은 도구 ---------- */
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, '');
+const likeEsc = (s) => s.replace(/[\\%_]/g, (m) => '\\' + m);
+const choseong = (s) => [...s].map((c) => { const k = c.charCodeAt(0) - 0xAC00; return k >= 0 && k < 11172 ? CHO[Math.floor(k / 588)] : c; }).join('');
+const bookById = (id) => state.books.find((b) => b.id === id);
+const isAdmin = () => state.profile?.role === 'admin';
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const randomToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
+const shareUrl = (token) => `${location.origin}${location.pathname}?s=${token}`;
+const rangeLabel = (a, b) => (a === b ? `PDF ${a}쪽` : `PDF ${a}~${b}쪽`);
+const fmtLeft = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+function snippetHtml(content, q) {
+  const c = String(content || '').replace(/\s+/g, ' ').trim();
+  const lc = c.toLowerCase();
+  let qq = q.trim().toLowerCase(), i = lc.indexOf(qq);
+  if (i < 0) { qq = qq.split(/\s+/)[0]; i = lc.indexOf(qq); }
+  if (i < 0 || !qq) return esc(c.slice(0, 90)) + (c.length > 90 ? '…' : '');
+  const s = Math.max(0, i - 28), e = Math.min(c.length, i + qq.length + 50);
+  return (s > 0 ? '…' : '') + esc(c.slice(s, i)) + '<mark>' + esc(c.slice(i, i + qq.length)) + '</mark>' + esc(c.slice(i + qq.length, e)) + (e < c.length ? '…' : '');
+}
+
+/* ---------- 화면 전환 ---------- */
+function showLogin() {
+  $('#main').hidden = true; $('#viewer').hidden = true; $('#login').hidden = false;
+  const last = store.get('dapji:lastId');
+  if (last && !$('#loginId').value) $('#loginId').value = last;
+}
+function showMain() { $('#login').hidden = true; $('#main').hidden = false; }
+function loginError(msg) { $('#loginError').textContent = msg; }
+
+/* ---------- 로그인 ---------- */
+async function boot() {
+  document.querySelectorAll('[data-academy]').forEach((el) => { el.textContent = CONFIG.ACADEMY; });
+  buildFilters(); buildDivisionSelects();
+  if (CONFIG.SUPABASE_URL.includes('YOUR-') || CONFIG.SUPABASE_ANON_KEY.includes('YOUR-')) {
+    showLogin(); loginError('index.html 맨 위 CONFIG에 Supabase 주소와 키를 넣어 주세요.'); return;
+  }
+  const params = new URLSearchParams(location.search);
+  if (params.get('tablet')) { startTablet(params.get('tablet')); return; }
+  if (params.get('s')) { startStudent(params.get('s')); return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await enter(session.user); else showLogin();
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') { state.user = null; state.books = []; state.shares = []; closeViewer(); showLogin(); }
+  });
+}
+
+/* ---------- 학생 화면 공통 ---------- */
+function stClear() {
+  $('#stPages').innerHTML = ''; $('#stTimer').hidden = true;
+  $('#stList').hidden = true; $('#stMsg').hidden = true; $('#stBack').hidden = true;
+}
+function stMessage(text) { stClear(); $('#stMsg').hidden = false; $('#stMsg').textContent = text; }
+function stRenderPages(s) {
+  stClear();
+  $('#stTitle').textContent = s.title;
+  $('#stSub').textContent = [s.publisher, rangeLabel(s.page_from, s.page_to)].filter(Boolean).join(' ');
+  $('#stPages').innerHTML = (s.images || []).map((path, i) => {
+    const url = sb.storage.from(CONFIG.SHARE_BUCKET).getPublicUrl(path).data.publicUrl;
+    const n = s.page_from + i;
+    return `<figure class="st-page"><figcaption class="st-label">PDF ${n}쪽</figcaption><img src="${esc(url)}" alt="PDF ${n}쪽 답지" draggable="false" loading="lazy"></figure>`;
+  }).join('');
+  $('#stTimer').hidden = false;
+  $('#stLeft').textContent = fmtLeft(new Date(s.expires_at).getTime() - Date.now());
+}
+
+/* QR로 들어온 폰 */
+async function startStudent(token) {
+  document.title = '채점 답지';
+  $('#student').hidden = false;
+  let tickTimer = 0, pollTimer = 0;
+  const stop = (text) => { clearInterval(tickTimer); clearInterval(pollTimer); stMessage(text); };
+  const { data, error } = await sb.rpc('get_share', { p_token: token });
+  if (error) { stop('답지를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침하세요.'); return; }
+  if (!data) { stop('채점 시간이 끝났거나 없는 주소예요. 선생님께 다시 열어 달라고 하세요.'); return; }
+  stRenderPages(data);
+  const end = new Date(data.expires_at).getTime();
+  tickTimer = setInterval(() => {
+    const left = end - Date.now();
+    if (left <= 0) stop('채점 시간이 끝나서 답지를 닫았어요.');
+    else $('#stLeft').textContent = fmtLeft(left);
+  }, 1000);
+  pollTimer = setInterval(async () => {
+    const r = await sb.rpc('get_share', { p_token: token });
+    if (!r.error && !r.data) stop('선생님이 채점을 닫았어요.');
+  }, 20000);
+}
+
+/* 학원 태블릿: 선생님이 연 채점이 저절로 떠요 */
+const TB = { key: '', items: [], open: null, poll: 0, tick: 0, ok: false };
+async function startTablet(key) {
+  TB.key = key;
+  document.title = '채점 태블릿';
+  $('#student').hidden = false;
+  $('#stBack').addEventListener('click', () => { renderTabletList(); window.scrollTo(0, 0); });
+  $('#stList').addEventListener('click', (e) => { const b = e.target.closest('[data-token]'); if (b) tabletOpen(b.dataset.token); });
+  stMessage('지금 열린 채점을 불러오는 중…');
+  await tabletRefresh();
+  TB.poll = setInterval(tabletRefresh, 10000);
+  TB.tick = setInterval(tabletTick, 1000);
+}
+async function tabletRefresh() {
+  const { data, error } = await sb.rpc('tablet_shares', { p_key: TB.key });
+  if (error) { if (!TB.ok) stMessage('목록을 불러오지 못했어요. 와이파이를 확인하세요. 잠시 뒤 다시 불러와요.'); return; }
+  if (data === null) {
+    clearInterval(TB.poll); clearInterval(TB.tick);
+    $('#stTitle').textContent = '채점 태블릿'; $('#stSub').textContent = '';
+    stMessage('연결이 끊긴 태블릿이에요. 원장님께 태블릿 연결을 다시 해 달라고 하세요.');
+    return;
+  }
+  TB.ok = true;
+  TB.items = data || [];
+  if (TB.open && !TB.items.some((s) => s.token === TB.open)) { toast('선생님이 채점을 닫았어요.'); renderTabletList(); return; }
+  if (!TB.open) renderTabletList();
+}
+function renderTabletList() {
+  TB.open = null;
+  const now = Date.now();
+  TB.items = TB.items.filter((s) => new Date(s.expires_at).getTime() > now);
+  stClear();
+  $('#stTitle').textContent = '지금 열린 채점';
+  $('#stSub').textContent = '선생님이 연 답지만 보여요. 내 교재를 눌러 채점하세요.';
+  const el = $('#stList'); el.hidden = false;
+  el.innerHTML = TB.items.length
+    ? TB.items.map((s) => `<button class="tb-item" data-token="${esc(s.token)}">
+        <span class="tb-title">${esc(s.title)}</span>
+        <span class="tb-sub"><span>${esc(rangeLabel(s.page_from, s.page_to))}</span>${s.teacher ? `<span>${esc(s.teacher)}</span>` : ''}</span>
+        <span class="tb-left" data-exp="${esc(s.expires_at)}"></span>
+      </button>`).join('')
+    : '<p class="empty">지금 열린 채점이 없어요. 선생님이 채점을 열면 여기에 바로 떠요.</p>';
+  tabletTick();
+}
+function tabletOpen(token) {
+  const s = TB.items.find((x) => x.token === token); if (!s) return;
+  TB.open = token;
+  stRenderPages(s);
+  $('#stBack').hidden = false;
+  window.scrollTo(0, 0);
+}
+function tabletTick() {
+  const now = Date.now();
+  if (TB.open) {
+    const s = TB.items.find((x) => x.token === TB.open);
+    const left = s ? new Date(s.expires_at).getTime() - now : 0;
+    if (left <= 0) { toast('채점 시간이 끝나서 답지를 닫았어요.'); renderTabletList(); return; }
+    $('#stLeft').textContent = fmtLeft(left);
+    return;
+  }
+  let expired = false;
+  document.querySelectorAll('#stList .tb-left').forEach((el) => {
+    const left = new Date(el.dataset.exp).getTime() - now;
+    if (left <= 0) expired = true; else el.textContent = `${fmtLeft(left)} 남음`;
+  });
+  if (expired) renderTabletList();
+}
+
+async function enter(user) {
+  state.user = user;
+  const { data: prof } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  state.profile = prof || { role: 'teacher', login_id: (user.email || '').split('@')[0] };
+  $('#accountBtn').textContent = state.profile.display_name || state.profile.login_id || '내 계정';
+  $('#uploadOpen').hidden = !isAdmin();
+  showMain();
+  await loadBooks();
+  loadShares();
+  cleanupShares();
+}
+
+$('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = $('#loginId').value.trim(), pw = $('#loginPw').value;
+  if (!id || !pw) { loginError('아이디와 비밀번호를 입력하세요.'); return; }
+  const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = '로그인 중…'; loginError('');
+  const email = id.includes('@') ? id : `${id.toLowerCase()}@${CONFIG.LOGIN_DOMAIN}`;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = '로그인';
+  if (error) {
+    loginError(/invalid/i.test(error.message) ? '아이디 또는 비밀번호가 맞지 않아요.' : '로그인하지 못했어요. ' + error.message);
+    return;
+  }
+  store.set('dapji:lastId', id);
+  $('#loginPw').value = '';
+  await enter(data.user);
+});
+
+/* ---------- 내 계정 · 채점 태블릿 연결 ---------- */
+const TBA = { list: [], shown: null };
+const tabletUrl = (key) => `${location.origin}${location.pathname}?tablet=${key}`;
+
+$('#accountBtn').addEventListener('click', () => {
+  $('#acHead').textContent = state.profile.display_name || state.profile.login_id;
+  $('#acSub').textContent = `아이디 ${state.profile.login_id}${isAdmin() ? ', 원장 계정' : ''}`;
+  $('#acTablets').hidden = !isAdmin();
+  $('#tbShow').hidden = true; TBA.shown = null;
+  $('#acctDlg').showModal();
+  if (isAdmin()) loadTablets();
+});
+$('#acClose').addEventListener('click', () => $('#acctDlg').close());
+$('#acLogout').addEventListener('click', async () => {
+  if (!confirm('로그아웃할까요?')) return;
+  $('#acctDlg').close(); await sb.auth.signOut();
+});
+
+async function loadTablets() {
+  $('#tbList').innerHTML = '<li><span class="none">불러오는 중…</span></li>';
+  const { data, error } = await sb.from('tablets').select('*').order('created_at');
+  if (error) { $('#tbList').innerHTML = `<li><span class="none">불러오지 못했어요. ${esc(error.message)}</span></li>`; return; }
+  TBA.list = data || []; renderTabletAdmin();
+}
+function renderTabletAdmin() {
+  $('#tbList').innerHTML = TBA.list.length
+    ? TBA.list.map((t) => `<li><span>${esc(t.name)}</span>
+        <button class="btn ghost small" data-tb="show" data-key="${esc(t.key)}">주소 보기</button>
+        <button class="btn danger small" data-tb="del" data-key="${esc(t.key)}">연결 끊기</button></li>`).join('')
+    : '<li><span class="none">아직 연결한 태블릿이 없어요.</span></li>';
+}
+function showTabletLink(t) {
+  TBA.shown = t;
+  $('#tbShow').hidden = false;
+  $('#tbShowName').textContent = `${t.name} 태블릿 카메라로 찍어 주세요`;
+  $('#tbQr').innerHTML = qrSvg(tabletUrl(t.key));
+  $('#tbLink').textContent = tabletUrl(t.key);
+}
+$('#tbAdd').addEventListener('click', async () => {
+  const name = $('#tbName').value.trim();
+  if (!name) { toast('태블릿 이름을 입력하세요. 예: 황성 1번'); return; }
+  const { data, error } = await sb.from('tablets').insert({ key: randomToken(), name }).select().single();
+  if (error) { toast('태블릿을 추가하지 못했어요. ' + error.message); return; }
+  $('#tbName').value = '';
+  TBA.list.push(data); renderTabletAdmin(); showTabletLink(data);
+});
+$('#tbList').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-tb]'); if (!b) return;
+  const t = TBA.list.find((x) => x.key === b.dataset.key); if (!t) return;
+  if (b.dataset.tb === 'show') { showTabletLink(t); return; }
+  if (!confirm(`‘${t.name}’ 태블릿 연결을 끊을까요? 그 태블릿에는 더 이상 채점이 뜨지 않아요.`)) return;
+  const { error } = await sb.from('tablets').delete().eq('key', t.key);
+  if (error) { toast('연결을 끊지 못했어요. ' + error.message); return; }
+  TBA.list = TBA.list.filter((x) => x.key !== t.key); renderTabletAdmin();
+  if (TBA.shown?.key === t.key) $('#tbShow').hidden = true;
+  toast('연결을 끊었어요.');
+});
+$('#tbCopy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(tabletUrl(TBA.shown.key)); toast('주소를 복사했어요.'); }
+  catch { toast('복사하지 못했어요. 주소를 길게 눌러 복사하세요.'); }
+});
+
+/* ---------- 목록 ---------- */
+function buildFilters() {
+  const opts = [['all', '전체'], ...CONFIG.DIVISIONS.map((d) => [d, d]), ['fav', '내 교재']];
+  $('#filters').innerHTML = opts.map(([v, t]) => `<button class="chip" data-filter="${esc(v)}" aria-pressed="${v === state.filter}">${esc(t)}</button>`).join('');
+}
+function buildDivisionSelects() {
+  const html = '<option value="">선택 안 함</option>' + CONFIG.DIVISIONS.map((d) => `<option>${esc(d)}</option>`).join('');
+  $('#upDivision').innerHTML = html; $('#edDivision').innerHTML = html;
+}
+function sortBooks() {
+  state.books.sort((a, b) => (a.publisher || '\uffff').localeCompare(b.publisher || '\uffff', 'ko') || a.title.localeCompare(b.title, 'ko', { numeric: true }));
+}
+function fillDatalists() {
+  const uniq = (k) => [...new Set(state.books.map((b) => b[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+  $('#pubList').innerHTML = uniq('publisher').map((v) => `<option value="${esc(v)}">`).join('');
+  $('#lvlList').innerHTML = uniq('level').map((v) => `<option value="${esc(v)}">`).join('');
+}
+
+async function loadBooks() {
+  $('#list').innerHTML = '<p class="empty">답지 목록을 불러오는 중…</p>';
+  const [b, f] = await Promise.all([sb.from('books').select('*'), sb.from('favorites').select('book_id')]);
+  if (b.error) { $('#list').innerHTML = `<p class="empty">목록을 불러오지 못했어요. ${esc(b.error.message)}</p>`; return; }
+  state.books = b.data || [];
+  state.favs = new Set((f.data || []).map((r) => r.book_id));
+  sortBooks(); fillDatalists(); renderList();
+}
+
+function passesFilter(b) {
+  if (state.filter === 'all') return true;
+  if (state.filter === 'fav') return state.favs.has(b.id);
+  return b.division === state.filter;
+}
+function visibleBooks() {
+  const terms = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  return state.books.filter((b) => {
+    if (!passesFilter(b)) return false;
+    if (!terms.length) return true;
+    const hay = normalize([b.title, b.publisher, b.level, b.division].join(' '));
+    const cho = choseong(hay);
+    return terms.every((t) => (/^[ㄱ-ㅎ]+$/.test(t) ? cho.includes(t) : hay.includes(t)));
+  });
+}
+
+function rowHtml(b) {
+  const fav = state.favs.has(b.id);
+  const tags = [b.level, b.division, b.page_count ? `${b.page_count}쪽` : ''].filter(Boolean).map((t) => `<span>${esc(t)}</span>`).join('');
+  return `<li class="row">
+    <button class="row-main" data-act="open" data-id="${b.id}">
+      <span class="row-title">${esc(b.title)}</span>
+      <span class="row-tags">${tags}${b.has_text === false ? '<span class="scan">스캔본</span>' : ''}</span>
+    </button>
+    ${isAdmin() ? `<button class="row-edit" data-act="edit" data-id="${b.id}">수정</button>` : ''}
+    <button class="star" data-act="fav" data-id="${b.id}" aria-pressed="${fav}" aria-label="${fav ? '내 교재에서 빼기' : '내 교재에 넣기'}">${STAR}</button>
+  </li>`;
+}
+
+function renderList() {
+  const el = $('#list');
+  if (state.body && state.q.trim().length >= 2) { renderBodyHits(); return; }
+  if (!state.books.length) {
+    el.innerHTML = isAdmin()
+      ? '<div class="empty"><p>아직 올린 답지가 없어요.</p><button class="btn" data-act="upload">첫 답지 올리기</button></div>'
+      : '<p class="empty">아직 올라온 답지가 없어요. 원장님께 올려 달라고 요청하세요.</p>';
+    return;
+  }
+  const books = visibleBooks();
+  if (!books.length) {
+    el.innerHTML = state.filter === 'fav' && !state.q.trim()
+      ? '<p class="empty">별표한 교재가 없어요. 자주 쓰는 교재 옆 별을 눌러 두면 여기 모여요.</p>'
+      : `<p class="empty">맞는 교재가 없어요.${state.body ? '' : ' 오른쪽 ‘본문 검색’을 켜면 답지 안의 글자로도 찾아요.'}</p>`;
+    return;
+  }
+  let html = '', cur = null;
+  for (const b of books) {
+    const pub = b.publisher || '출판사 미정';
+    if (pub !== cur) { if (cur !== null) html += '</ul>'; html += `<h2 class="group">${esc(pub)}</h2><ul class="rows">`; cur = pub; }
+    html += rowHtml(b);
+  }
+  el.innerHTML = html + '</ul>';
+}
+
+/* 답지 본문 검색 (전체 교재) */
+let bodyTimer, bodySeq = 0;
+function scheduleBodySearch() {
+  clearTimeout(bodyTimer);
+  const q = state.q.trim();
+  state.bodyHits = null;
+  if (!state.body || q.length < 2) { renderList(); return; }
+  renderList();
+  bodyTimer = setTimeout(async () => {
+    const seq = ++bodySeq;
+    const { data, error } = await sb.from('book_pages')
+      .select('book_id,page_no,content')
+      .ilike('search_text', `%${likeEsc(normalize(q))}%`)
+      .order('book_id').order('page_no').limit(80);
+    if (seq !== bodySeq) return;
+    state.bodyHits = error ? { error } : data;
+    renderList();
+  }, 350);
+}
+function renderBodyHits() {
+  const el = $('#list'), hits = state.bodyHits;
+  if (hits === null) { el.innerHTML = '<p class="empty">답지 본문에서 찾는 중…</p>'; return; }
+  if (hits.error) { el.innerHTML = `<p class="empty">본문 검색에 실패했어요. ${esc(hits.error.message)}</p>`; return; }
+  const byBook = new Map();
+  for (const h of hits) {
+    const b = bookById(h.book_id);
+    if (!b || !passesFilter(b)) continue;
+    if (!byBook.has(b.id)) byBook.set(b.id, { b, pages: [] });
+    byBook.get(b.id).pages.push(h);
+  }
+  if (!byBook.size) { el.innerHTML = '<p class="empty">답지 본문에서 찾지 못했어요. 글자 없이 스캔된 PDF는 본문 검색이 안 돼요.</p>'; return; }
+  let html = `<p class="hits-note">동그라미 숫자는 PDF 쪽 번호예요.${hits.length >= 80 ? ' 결과가 많아 앞쪽 80개만 보여요.' : ''}</p>`;
+  const ordered = [...byBook.values()].sort((x, y) => x.b.title.localeCompare(y.b.title, 'ko', { numeric: true }));
+  for (const { b, pages } of ordered) {
+    html += `<section class="hit-book"><h2 class="hit-title"><button data-act="open" data-id="${b.id}">${esc(b.title)}</button><span>${esc(b.publisher || '')}</span></h2><ul class="hit-pages">`;
+    for (const p of pages) {
+      html += `<li><button class="hit" data-act="open" data-id="${b.id}" data-page="${p.page_no}"><span class="circled">${p.page_no}</span><span class="snip">${snippetHtml(p.content, state.q)}</span></button></li>`;
+    }
+    html += '</ul></section>';
+  }
+  el.innerHTML = html;
+}
+
+async function toggleFav(id, btn) {
+  const on = !state.favs.has(id);
+  on ? state.favs.add(id) : state.favs.delete(id);
+  btn.setAttribute('aria-pressed', String(on));
+  btn.setAttribute('aria-label', on ? '내 교재에서 빼기' : '내 교재에 넣기');
+  const { error } = on
+    ? await sb.from('favorites').insert({ book_id: id })
+    : await sb.from('favorites').delete().eq('book_id', id);
+  if (error) { on ? state.favs.delete(id) : state.favs.add(id); toast('별표를 저장하지 못했어요.'); renderList(); return; }
+  if (state.filter === 'fav') renderList();
+}
+
+$('#q').addEventListener('input', (e) => { state.q = e.target.value; state.body ? scheduleBodySearch() : renderList(); });
+$('#bodyBtn').addEventListener('click', () => {
+  state.body = !state.body;
+  $('#bodyBtn').setAttribute('aria-pressed', String(state.body));
+  $('#q').placeholder = state.body ? '답지 안의 문장, p.34, Unit 3으로 찾기' : '교재명, 출판사, 초성으로 찾기';
+  scheduleBodySearch(); $('#q').focus();
+});
+$('#filters').addEventListener('click', (e) => {
+  const c = e.target.closest('[data-filter]'); if (!c) return;
+  state.filter = c.dataset.filter;
+  $('#filters').querySelectorAll('.chip').forEach((x) => x.setAttribute('aria-pressed', String(x === c)));
+  renderList();
+});
+$('#list').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const { act, id, page } = b.dataset;
+  if (act === 'open') { document.activeElement?.blur(); openBook(id, page ? Number(page) : null); }
+  else if (act === 'fav') toggleFav(id, b);
+  else if (act === 'edit') openEdit(id);
+  else if (act === 'upload') openUpload();
+});
+
+/* ---------- 답지 보기 ---------- */
+const ZOOMS = [1, 1.5, 2, 3];
+const V = { book: null, pdf: null, task: null, pages: [], tasks: new Map(), rendered: new Map(), visible: new Set(), io: null, total: 0, current: 0, zoom: 1, seq: 0 };
+const clampPage = (n) => Math.min(Math.max(1, Math.round(n) || 1), V.total || 1);
+
+async function openBook(id, page) {
+  const book = bookById(id); if (!book) return;
+  const seq = ++V.seq;
+  closeDoc();
+  V.book = book;
+  $('#vTitle').textContent = book.title;
+  $('#vMeta').textContent = [book.publisher, book.level].filter(Boolean).join(' ');
+  $('#vStatus').textContent = '답지를 여는 중…';
+  $('#vTotal').textContent = '/ 0'; $('#vPage').value = '';
+  $('#vSearch').hidden = true; $('#vSearchBtn').setAttribute('aria-pressed', 'false');
+  $('#vq').value = ''; $('#vResults').innerHTML = '';
+  $('#viewer').hidden = false; document.body.classList.add('noscroll');
+  if (!history.state?.viewer) history.pushState({ viewer: true }, '');
+  try {
+    const { data, error } = await sb.storage.from(CONFIG.BUCKET).createSignedUrl(book.file_path, 60 * 60);
+    if (error) throw error;
+    V.task = pdfjsLib.getDocument({ url: data.signedUrl, ...PDF_OPTS });
+    const pdf = await V.task.promise;
+    if (seq !== V.seq) return;
+    V.pdf = pdf; V.total = pdf.numPages;
+    const first = (await pdf.getPage(1)).getViewport({ scale: 1 });
+    if (seq !== V.seq) return;
+    buildPages(first.width, first.height);
+    $('#vStatus').textContent = '';
+    $('#vTotal').textContent = `/ ${V.total}`;
+    const start = clampPage(page || Number(store.get('dapji:last:' + book.id)) || 1);
+    requestAnimationFrame(() => scrollToPage(start, false));
+  } catch (err) {
+    if (seq !== V.seq) return;
+    $('#vStatus').textContent = `답지를 열지 못했어요. ${err?.message || ''} 인터넷 연결을 확인하고 다시 열어 보세요.`;
+  }
+}
+
+function buildPages(w, h) {
+  const wrap = $('#vPages');
+  wrap.innerHTML = ''; V.pages = []; V.rendered.clear(); V.visible.clear();
+  applyZoomWidth();
+  const frag = document.createDocumentFragment();
+  for (let n = 1; n <= V.total; n++) {
+    const d = document.createElement('div');
+    d.className = 'vpage'; d.dataset.n = n; d.style.aspectRatio = `${w} / ${h}`;
+    d.innerHTML = `<span class="vpage-no">${n}</span>`;
+    frag.appendChild(d); V.pages.push(d);
+  }
+  wrap.appendChild(frag);
+  V.io = new IntersectionObserver(onIntersect, { root: $('#vScroll'), rootMargin: '150% 0px' });
+  V.pages.forEach((p) => V.io.observe(p));
+}
+
+function onIntersect(entries) {
+  for (const en of entries) {
+    const n = Number(en.target.dataset.n);
+    if (en.isIntersecting) { V.visible.add(n); renderPage(n); }
+    else { V.visible.delete(n); releasePage(n); }
+  }
+}
+
+async function renderPage(n) {
+  const zoom = V.zoom, pdf = V.pdf, div = V.pages[n - 1];
+  if (!pdf || !div || V.rendered.get(n) === zoom || V.tasks.has(n)) return;
+  let task = null;
+  try {
+    const page = await pdf.getPage(n);
+    if (pdf !== V.pdf || !V.visible.has(n) || V.tasks.has(n) || V.rendered.get(n) === V.zoom) return;
+    const base = page.getViewport({ scale: 1 });
+    div.style.aspectRatio = `${base.width} / ${base.height}`;
+    const cssW = div.clientWidth || 360;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const vp = page.getViewport({ scale: (cssW / base.width) * dpr });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
+    task = page.render({ canvasContext: canvas.getContext('2d'), viewport: vp });
+    V.tasks.set(n, task);
+    await task.promise;
+    if (V.tasks.get(n) === task) V.tasks.delete(n);
+    if (pdf !== V.pdf || !V.visible.has(n)) { canvas.width = 0; canvas.height = 0; return; }
+    const old = div.querySelector('canvas');
+    if (old) { old.width = 0; old.height = 0; old.remove(); }
+    div.appendChild(canvas);
+    V.rendered.set(n, zoom);
+    if (zoom !== V.zoom) renderPage(n);
+  } catch (err) {
+    if (task && V.tasks.get(n) === task) V.tasks.delete(n);
+    if (err?.name !== 'RenderingCancelledException') console.warn('page', n, err);
+  }
+}
+
+function releasePage(n) {
+  const t = V.tasks.get(n); if (t) { t.cancel(); V.tasks.delete(n); }
+  const c = V.pages[n - 1]?.querySelector('canvas');
+  if (c) { c.width = 0; c.height = 0; c.remove(); }
+  V.rendered.delete(n);
+}
+
+function closeDoc() {
+  V.io?.disconnect(); V.io = null;
+  V.tasks.forEach((t) => t.cancel()); V.tasks.clear();
+  V.pages.forEach((p) => { const c = p.querySelector('canvas'); if (c) { c.width = 0; c.height = 0; } });
+  V.pages = []; V.rendered.clear(); V.visible.clear(); V.current = 0; V.total = 0;
+  if (V.task) { V.task.destroy(); V.task = null; }
+  V.pdf = null;
+  $('#vPages').innerHTML = '';
+}
+function closeViewer() {
+  V.seq++; closeDoc(); V.book = null;
+  $('#viewer').hidden = true; document.body.classList.remove('noscroll');
+}
+
+function pageTop(n) { return $('#vPages').offsetTop + V.pages[n - 1].offsetTop; }
+function scrollToPage(n, smooth = true) {
+  if (!V.pages.length) return;
+  n = clampPage(n);
+  $('#vScroll').scrollTo({ top: pageTop(n) - 8, behavior: smooth && !reducedMotion() ? 'smooth' : 'auto' });
+  setCurrent(n);
+}
+function setCurrent(n) {
+  if (n === V.current) return;
+  V.current = n;
+  if (document.activeElement !== $('#vPage')) $('#vPage').value = n;
+  if (V.book) store.set('dapji:last:' + V.book.id, n);
+}
+let scrollRaf = 0;
+$('#vScroll').addEventListener('scroll', () => {
+  if (scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = 0;
+    if (!V.pages.length) return;
+    const sc = $('#vScroll'), mark = sc.scrollTop + sc.clientHeight * 0.35;
+    let lo = 0, hi = V.pages.length - 1;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (pageTop(m + 1) <= mark) lo = m; else hi = m - 1; }
+    setCurrent(lo + 1);
+  });
+}, { passive: true });
+
+function applyZoomWidth() { $('#vPages').style.width = `calc(min(100%, 860px) * ${V.zoom})`; }
+function setZoom(z) {
+  if (!V.pages.length) return;
+  const cur = V.current || 1;
+  V.zoom = z; $('#zLabel').textContent = Math.round(z * 100) + '%';
+  V.tasks.forEach((t) => t.cancel()); V.tasks.clear();
+  applyZoomWidth();
+  scrollToPage(cur, false);
+  const sc = $('#vScroll'); sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2;
+  requestAnimationFrame(() => V.visible.forEach((n) => renderPage(n)));
+}
+$('#zIn').addEventListener('click', () => { const i = ZOOMS.indexOf(V.zoom); if (i < ZOOMS.length - 1) setZoom(ZOOMS[i + 1]); });
+$('#zOut').addEventListener('click', () => { const i = ZOOMS.indexOf(V.zoom); if (i > 0) setZoom(ZOOMS[i - 1]); });
+$('#vPage').addEventListener('change', (e) => scrollToPage(Number(e.target.value)));
+$('#vPage').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); });
+$('#vPage').addEventListener('blur', () => { $('#vPage').value = V.current || ''; });
+
+$('#vClose').addEventListener('click', () => { if (history.state?.viewer) history.back(); else closeViewer(); });
+window.addEventListener('popstate', () => { if (!$('#viewer').hidden) closeViewer(); });
+
+/* 이 답지 안에서 찾기 */
+$('#vSearchBtn').addEventListener('click', () => {
+  const s = $('#vSearch'); s.hidden = !s.hidden;
+  $('#vSearchBtn').setAttribute('aria-pressed', String(!s.hidden));
+  if (!s.hidden) $('#vq').focus();
+});
+let vqTimer, vqSeq = 0;
+$('#vq').addEventListener('input', () => { clearTimeout(vqTimer); vqTimer = setTimeout(inBookSearch, 300); });
+async function inBookSearch() {
+  const q = $('#vq').value.trim(), out = $('#vResults');
+  if (!q || !V.book) { out.innerHTML = ''; return; }
+  let html = '';
+  if (/^\d+$/.test(q) && Number(q) >= 1 && Number(q) <= V.total) {
+    html += `<button class="hit" data-page="${Number(q)}"><span class="circled">${Number(q)}</span><span class="snip">PDF ${Number(q)}쪽으로 바로 가기</span></button>`;
+  }
+  if (V.book.has_text === false) {
+    out.innerHTML = html + '<p class="vr-note">글자 없이 스캔된 PDF라 본문 검색이 안 돼요. 아래 쪽 번호로 이동하세요.</p>';
+    return;
+  }
+  const seq = ++vqSeq;
+  out.innerHTML = html + '<p class="vr-note">찾는 중…</p>';
+  const { data, error } = await sb.from('book_pages')
+    .select('page_no,content').eq('book_id', V.book.id)
+    .ilike('search_text', `%${likeEsc(normalize(q))}%`).order('page_no').limit(100);
+  if (seq !== vqSeq) return;
+  if (error) { out.innerHTML = html + `<p class="vr-note">찾지 못했어요. ${esc(error.message)}</p>`; return; }
+  for (const p of data) html += `<button class="hit" data-page="${p.page_no}"><span class="circled">${p.page_no}</span><span class="snip">${snippetHtml(p.content, q)}</span></button>`;
+  if (!data.length) html += '<p class="vr-note">이 답지 본문에서 찾지 못했어요.</p>';
+  out.innerHTML = html;
+}
+$('#vResults').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-page]'); if (!b) return;
+  $('#vSearch').hidden = true; $('#vSearchBtn').setAttribute('aria-pressed', 'false');
+  document.activeElement?.blur();
+  scrollToPage(Number(b.dataset.page));
+});
+
+/* ---------- 학생 채점용으로 열기 (강사) ---------- */
+const SH = { minutes: 20, share: null, timer: 0 };
+
+function buildTimes() {
+  if (!CONFIG.SHARE_MINUTES.includes(SH.minutes)) SH.minutes = CONFIG.SHARE_MINUTES[0];
+  $('#shTimes').innerHTML = CONFIG.SHARE_MINUTES.map((m) => `<button class="chip" data-min="${m}" aria-pressed="${m === SH.minutes}">${m}분</button>`).join('');
+}
+$('#shTimes').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-min]'); if (!b) return;
+  SH.minutes = Number(b.dataset.min);
+  $('#shTimes').querySelectorAll('.chip').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+});
+
+$('#vShareBtn').addEventListener('click', () => {
+  if (!V.pdf) { toast('답지가 다 열린 뒤에 눌러 주세요.'); return; }
+  $('#shForm').hidden = false; $('#shResult').hidden = true; $('#shError').textContent = '';
+  $('#shFrom').value = V.current || 1; $('#shTo').value = V.current || 1;
+  $('#shFrom').max = V.total; $('#shTo').max = V.total;
+  $('#shMake').disabled = false; $('#shMake').textContent = '태블릿에 열기';
+  buildTimes();
+  $('#shareDlg').showModal();
+});
+$('#shFrom').addEventListener('change', () => { if (Number($('#shTo').value) < Number($('#shFrom').value)) $('#shTo').value = $('#shFrom').value; });
+
+async function pageToJpeg(pdf, n) {
+  const page = await pdf.getPage(n);
+  const base = page.getViewport({ scale: 1 });
+  const vp = page.getViewport({ scale: Math.min(1600 / base.width, 3) });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  const blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('이미지를 만들지 못했어요.'))), 'image/jpeg', 0.85));
+  canvas.width = 0; canvas.height = 0;
+  return blob;
+}
+
+$('#shMake').addEventListener('click', async () => {
+  const from = Math.round(Number($('#shFrom').value)), to = Math.round(Number($('#shTo').value));
+  if (!(from >= 1 && to >= from && to <= V.total)) { $('#shError').textContent = `1~${V.total} 사이로, 앞 숫자가 뒤 숫자보다 작거나 같게 넣어 주세요.`; return; }
+  if (to - from + 1 > CONFIG.SHARE_MAX_PAGES) { $('#shError').textContent = `한 번에 ${CONFIG.SHARE_MAX_PAGES}쪽까지 열 수 있어요.`; return; }
+  $('#shError').textContent = '';
+  const btn = $('#shMake'); btn.disabled = true;
+  const token = randomToken(), pdf = V.pdf, book = V.book, paths = [];
+  try {
+    for (let n = from; n <= to; n++) {
+      btn.textContent = `준비 중 ${n - from + 1}/${to - from + 1}`;
+      const blob = await pageToJpeg(pdf, n);
+      const path = `${token}/${n}.jpg`;
+      const { error } = await sb.storage.from(CONFIG.SHARE_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw error;
+      paths.push(path);
+    }
+    const expires_at = new Date(Date.now() + SH.minutes * 60000).toISOString();
+    const { data, error } = await sb.from('shares')
+      .insert({ token, book_id: book.id, page_from: from, page_to: to, image_paths: paths, expires_at })
+      .select().single();
+    if (error) throw error;
+    state.shares.push(data);
+    renderShareBar();
+    showShareResult(data);
+  } catch (err) {
+    if (paths.length) await sb.storage.from(CONFIG.SHARE_BUCKET).remove(paths);
+    $('#shError').textContent = '채점용 답지를 만들지 못했어요. ' + (err?.message || '');
+    btn.disabled = false; btn.textContent = '태블릿에 열기';
+  }
+});
+
+function qrSvg(text) {
+  if (!window.qrcode) return '<p class="vr-note">QR을 만들지 못했어요. 아래 링크를 보내 주세요.</p>';
+  const qr = qrcode(0, 'M'); qr.addData(text); qr.make();
+  return qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true, alt: '채점 답지 QR' });
+}
+
+function showShareResult(s) {
+  SH.share = s;
+  const b = bookById(s.book_id);
+  $('#shForm').hidden = true; $('#shResult').hidden = false;
+  $('#shrTitle').textContent = b?.title || '채점 답지';
+  $('#shrRange').textContent = rangeLabel(s.page_from, s.page_to);
+  $('#shrLink').textContent = shareUrl(s.token);
+  $('#shrQr').innerHTML = qrSvg(shareUrl(s.token));
+  clearInterval(SH.timer);
+  const tick = () => {
+    const left = new Date(s.expires_at).getTime() - Date.now();
+    if (left <= 0) { clearInterval(SH.timer); $('#shrLeft').textContent = '닫혔어요'; renderShareBar(); return; }
+    $('#shrLeft').textContent = `${fmtLeft(left)} 남음`;
+  };
+  tick(); SH.timer = setInterval(tick, 1000);
+  if (!$('#shareDlg').open) $('#shareDlg').showModal();
+}
+
+async function endShare(s) {
+  await sb.storage.from(CONFIG.SHARE_BUCKET).remove(s.image_paths || []);
+  await sb.from('shares').delete().eq('token', s.token);
+  state.shares = state.shares.filter((x) => x.token !== s.token);
+  renderShareBar();
+}
+
+$('#shCancel').addEventListener('click', () => $('#shareDlg').close());
+$('#shrDone').addEventListener('click', () => $('#shareDlg').close());
+$('#shareDlg').addEventListener('close', () => clearInterval(SH.timer));
+$('#shrCopy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(shareUrl(SH.share.token)); toast('링크를 복사했어요. 카톡에 붙여넣으면 돼요.'); }
+  catch { toast('복사하지 못했어요. 링크를 길게 눌러 복사하세요.'); }
+});
+$('#shrEnd').addEventListener('click', async () => {
+  if (!confirm('지금 채점을 닫을까요? 아이들 화면에서도 답지가 사라져요.')) return;
+  await endShare(SH.share);
+  $('#shareDlg').close(); toast('채점을 닫았어요.');
+});
+
+/* 지금 열려 있는 채점 (목록 위 띠) */
+async function loadShares() {
+  const { data } = await sb.from('shares').select('*')
+    .eq('created_by', state.user.id).gt('expires_at', new Date().toISOString()).order('expires_at');
+  state.shares = data || [];
+  renderShareBar();
+}
+function renderShareBar() {
+  const now = Date.now();
+  state.shares = state.shares.filter((s) => new Date(s.expires_at).getTime() > now);
+  const el = $('#shareBar');
+  el.hidden = !state.shares.length;
+  el.innerHTML = state.shares.map((s) => {
+    const left = Math.max(1, Math.ceil((new Date(s.expires_at).getTime() - now) / 60000));
+    return `<div class="share-item">
+      <div class="si-text"><strong>${esc(bookById(s.book_id)?.title || '채점 답지')}</strong><span>${rangeLabel(s.page_from, s.page_to)} 채점 중, ${left}분 남음</span></div>
+      <button class="btn small ghost" data-share="qr" data-token="${s.token}">다시 보기</button>
+      <button class="btn small danger" data-share="end" data-token="${s.token}">닫기</button>
+    </div>`;
+  }).join('');
+}
+setInterval(() => { if (state.user && state.shares.length) renderShareBar(); }, 20000);
+$('#shareBar').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-share]'); if (!b) return;
+  const s = state.shares.find((x) => x.token === b.dataset.token); if (!s) return;
+  if (b.dataset.share === 'qr') { showShareResult(s); return; }
+  if (!confirm('이 채점을 지금 닫을까요? 아이들 화면에서도 답지가 사라져요.')) return;
+  await endShare(s); toast('채점을 닫았어요.');
+});
+
+/* 시간이 지난 채점 이미지는 강사가 앱을 열 때 지워요 */
+async function cleanupShares() {
+  const { data } = await sb.from('shares').select('token,image_paths').lt('expires_at', new Date().toISOString()).limit(50);
+  if (!data?.length) return;
+  const paths = data.flatMap((s) => s.image_paths || []);
+  if (paths.length) await sb.storage.from(CONFIG.SHARE_BUCKET).remove(paths);
+  await sb.from('shares').delete().in('token', data.map((s) => s.token));
+}
+
+/* ---------- 답지 올리기 (원장) ---------- */
+const up = { items: [], busy: false };
+const titleFromName = (n) => n.replace(/\.pdf$/i, '').replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+
+function openUpload() {
+  up.items = []; up.busy = false;
+  $('#upFiles').value = ''; $('#upItems').innerHTML = '';
+  $('#upStart').disabled = true; $('#upStart').textContent = '올리기'; $('#upCancel').disabled = false;
+  $('#uploadDlg').showModal();
+}
+$('#uploadOpen').addEventListener('click', openUpload);
+$('#upCancel').addEventListener('click', () => $('#uploadDlg').close());
+$('#uploadDlg').addEventListener('cancel', (e) => { if (up.busy) e.preventDefault(); });
+
+$('#upFiles').addEventListener('change', (e) => {
+  up.items = [...e.target.files].map((file) => ({ file, title: titleFromName(file.name), status: 'ready' }));
+  $('#upItems').innerHTML = up.items.map((it, i) => `<li class="upitem" data-i="${i}" data-status="ready">
+      <input value="${esc(it.title)}" data-i="${i}" aria-label="교재명">
+      <span class="upmeta">${(it.file.size / 1048576).toFixed(1)}MB</span>
+      <span class="upmsg"></span></li>`).join('');
+  $('#upStart').disabled = !up.items.length; $('#upStart').textContent = '올리기';
+});
+$('#upItems').addEventListener('input', (e) => { const i = e.target.dataset.i; if (i != null) up.items[i].title = e.target.value; });
+
+function setUp(i, status, msg) {
+  up.items[i].status = status;
+  const li = $(`#upItems li[data-i="${i}"]`); if (!li) return;
+  li.dataset.status = status; li.querySelector('.upmsg').textContent = msg;
+}
+
+async function extractText(file, onProgress) {
+  const task = pdfjsLib.getDocument({ data: await file.arrayBuffer(), ...PDF_OPTS });
+  try {
+    const pdf = await task.promise;
+    const pages = []; let chars = 0;
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const page = await pdf.getPage(n);
+      const tc = await page.getTextContent();
+      let s = '';
+      for (const it of tc.items) { if (typeof it.str === 'string') s += it.str + (it.hasEOL ? '\n' : ' '); }
+      const content = s.replace(/\u0000/g, '').replace(/[ \t\f\v\u00a0]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim();
+      chars += content.replace(/\s/g, '').length;
+      if (content) pages.push({ page_no: n, content, search_text: normalize(content) });
+      page.cleanup();
+      if (n % 5 === 0 || n === pdf.numPages) onProgress(n, pdf.numPages);
+    }
+    return { pageCount: pdf.numPages, pages, hasText: chars >= 20 };
+  } finally {
+    task.destroy();
+  }
+}
+
+async function uploadOne(it, i, meta) {
+  const title = it.title.trim() || titleFromName(it.file.name);
+  if (it.file.size > CONFIG.MAX_MB * 1048576) throw new Error(`파일이 ${CONFIG.MAX_MB}MB보다 커요.`);
+  setUp(i, 'work', '본문 읽는 중');
+  let info;
+  try {
+    info = await extractText(it.file, (n, total) => setUp(i, 'work', `본문 읽는 중 ${n}/${total}쪽`));
+  } catch (err) {
+    if (err?.name === 'PasswordException') throw new Error('암호가 걸린 PDF예요. 암호를 풀고 다시 올려 주세요.');
+    throw new Error('PDF를 읽지 못했어요. 파일이 손상됐는지 확인하세요.');
+  }
+  setUp(i, 'work', '파일 올리는 중');
+  const path = `${newId()}.pdf`;
+  const upRes = await sb.storage.from(CONFIG.BUCKET).upload(path, it.file, { contentType: 'application/pdf', upsert: false });
+  if (upRes.error) throw upRes.error;
+  let bookId = null;
+  try {
+    setUp(i, 'work', '목록에 등록 중');
+    const { data: book, error } = await sb.from('books').insert({
+      title, publisher: meta.publisher || null, division: meta.division || null, level: meta.level || null,
+      file_path: path, page_count: info.pageCount, file_size: it.file.size, has_text: info.hasText,
+    }).select().single();
+    if (error) throw error;
+    bookId = book.id;
+    const rows = info.pages.map((p) => ({ ...p, book_id: book.id }));
+    for (let k = 0; k < rows.length; k += 40) {
+      const { error: e2 } = await sb.from('book_pages').insert(rows.slice(k, k + 40));
+      if (e2) throw e2;
+    }
+  } catch (err) {
+    if (bookId) await sb.from('books').delete().eq('id', bookId);
+    await sb.storage.from(CONFIG.BUCKET).remove([path]);
+    throw err;
+  }
+  setUp(i, 'done', info.hasText ? `올렸어요. ${info.pageCount}쪽` : `올렸어요. ${info.pageCount}쪽, 글자 없는 스캔본이라 본문 검색은 안 돼요.`);
+}
+
+$('#upStart').addEventListener('click', async () => {
+  if (up.busy || !up.items.length) return;
+  const meta = { publisher: $('#upPublisher').value.trim(), division: $('#upDivision').value, level: $('#upLevel').value.trim() };
+  up.busy = true;
+  $('#upStart').disabled = true; $('#upCancel').disabled = true; $('#upFiles').disabled = true;
+  $('#upItems').querySelectorAll('input').forEach((x) => { x.disabled = true; });
+  let ok = 0;
+  for (let i = 0; i < up.items.length; i++) {
+    if (up.items[i].status === 'done') { ok++; continue; }
+    try { await uploadOne(up.items[i], i, meta); ok++; }
+    catch (err) { setUp(i, 'error', '올리지 못했어요. ' + (err?.message || err)); }
+  }
+  up.busy = false; $('#upCancel').disabled = false; $('#upFiles').disabled = false;
+  await loadBooks();
+  if (ok === up.items.length) { $('#uploadDlg').close(); toast(`답지 ${ok}개를 올렸어요.`); }
+  else {
+    $('#upItems').querySelectorAll('li:not([data-status="done"]) input').forEach((x) => { x.disabled = false; });
+    $('#upStart').disabled = false; $('#upStart').textContent = '실패한 것 다시 올리기';
+  }
+});
+
+/* ---------- 교재 정보 수정 (원장) ---------- */
+let editing = null;
+function openEdit(id) {
+  editing = bookById(id); if (!editing) return;
+  $('#edTitle').value = editing.title || '';
+  $('#edPublisher').value = editing.publisher || '';
+  $('#edDivision').value = editing.division || '';
+  $('#edLevel').value = editing.level || '';
+  $('#editDlg').showModal();
+}
+$('#edCancel').addEventListener('click', () => $('#editDlg').close());
+$('#edSave').addEventListener('click', async () => {
+  const patch = {
+    title: $('#edTitle').value.trim(), publisher: $('#edPublisher').value.trim() || null,
+    division: $('#edDivision').value || null, level: $('#edLevel').value.trim() || null,
+  };
+  if (!patch.title) { toast('교재명을 입력하세요.'); return; }
+  const { error } = await sb.from('books').update(patch).eq('id', editing.id);
+  if (error) { toast('저장하지 못했어요. ' + error.message); return; }
+  Object.assign(editing, patch); sortBooks(); fillDatalists(); renderList();
+  $('#editDlg').close(); toast('저장했어요.');
+});
+$('#edDelete').addEventListener('click', async () => {
+  if (!confirm(`‘${editing.title}’ 답지를 지울까요? 되돌릴 수 없어요.`)) return;
+  const { data: openShares } = await sb.from('shares').select('image_paths').eq('book_id', editing.id);
+  const sharePaths = (openShares || []).flatMap((s) => s.image_paths || []);
+  if (sharePaths.length) await sb.storage.from(CONFIG.SHARE_BUCKET).remove(sharePaths);
+  const { error } = await sb.from('books').delete().eq('id', editing.id);
+  if (error) { toast('지우지 못했어요. ' + error.message); return; }
+  await sb.storage.from(CONFIG.BUCKET).remove([editing.file_path]);
+  state.books = state.books.filter((b) => b.id !== editing.id);
+  state.favs.delete(editing.id);
+  fillDatalists(); renderList();
+  $('#editDlg').close(); toast('지웠어요.');
+});
+
+boot();
+})();
+</script>
+</body>
+</html>
