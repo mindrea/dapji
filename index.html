@@ -428,7 +428,7 @@ const CONFIG = {
   ACADEMY: '조이잉글리시 엘리트어학원',
   MAX_MB: 50,
   SHARE_BUCKET: 'shares',
-  SHARE_MINUTES: [10, 20, 30, 50],   // 학생 채점용으로 열어 둘 시간 선택지
+  SHARE_MINUTES: [10, 20, 30, 60, 90, 120],   // 학생 채점용으로 열어 둘 시간 선택지 (최대 2시간)
   SHARE_MAX_PAGES: 20,
 };
 /* ============================== */
@@ -462,7 +462,11 @@ const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toStri
 const randomToken = () => [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
 const shareUrl = (token) => `${location.origin}${location.pathname}?s=${token}`;
 const rangeLabel = (a, b) => (a === b ? `PDF ${a}쪽` : `PDF ${a}~${b}쪽`);
-const fmtLeft = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const fmtLeft = (ms) => {
+  const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
+};
+const minLabel = (m) => (m < 60 ? `${m}분` : m % 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${m / 60}시간`);
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let toastTimer;
 function toast(msg) {
@@ -1064,7 +1068,7 @@ const SH = { minutes: 20, share: null, timer: 0 };
 
 function buildTimes() {
   if (!CONFIG.SHARE_MINUTES.includes(SH.minutes)) SH.minutes = CONFIG.SHARE_MINUTES[0];
-  $('#shTimes').innerHTML = CONFIG.SHARE_MINUTES.map((m) => `<button class="chip" data-min="${m}" aria-pressed="${m === SH.minutes}">${m}분</button>`).join('');
+  $('#shTimes').innerHTML = CONFIG.SHARE_MINUTES.map((m) => `<button class="chip" data-min="${m}" aria-pressed="${m === SH.minutes}">${minLabel(m)}</button>`).join('');
 }
 $('#shTimes').addEventListener('click', (e) => {
   const b = e.target.closest('[data-min]'); if (!b) return;
